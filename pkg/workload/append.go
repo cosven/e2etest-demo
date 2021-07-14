@@ -8,8 +8,8 @@ import (
 	"math/rand"
 	"sync"
 
-	"github.com/ngaut/log"
 	"github.com/pingcap/errors"
+	"github.com/pingcap/log"
 )
 
 type AppendWorkload struct {

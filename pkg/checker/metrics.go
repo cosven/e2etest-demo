@@ -3,7 +3,7 @@ package checker
 import (
 	"context"
 
-	"github.com/ngaut/log"
+	"github.com/pingcap/log"
 )
 
 type MetricsChecker struct {
