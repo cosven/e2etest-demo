@@ -1,0 +1,27 @@
+---
+generateName: testbed-e2etest-oom-
+items:
+  - name: tc
+    type: TIDB_CLUSTER
+    spec:
+      pd:
+        replicas: 1
+        image: pingcap/pd:v5.1.0
+      tidb:
+        replicas: 1
+        image: pingcap/tidb:v5.1.0
+        requests:
+          cpu: 2000m
+          memory: 8Gi
+        limits:
+          cpu: 8000m
+          memory: 16Gi
+      tikv:
+        replicas: 5
+        image: pingcap/tikv:v5.1.0
+        requests:
+          cpu: 2000m
+          memory: 4Gi
+        limits:
+          cpu: 4000m
+          memory: 8Gi

@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"flag"
+	"fmt"
+	"net/url"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -11,59 +13,61 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/pingcap/e2etest/pkg/checker"
-	"github.com/pingcap/e2etest/pkg/util"
+	. "github.com/pingcap/e2etest/pkg/ginkgo_helper"
 	"github.com/pingcap/e2etest/pkg/workload"
-	infra_sdk "github.com/pingcap/test-infra/sdk/core"
+	infra_resource "github.com/pingcap/test-infra/sdk/resource"
+	_ "github.com/pingcap/test-infra/sdk/resource/impl/k8s"
 )
 
-var _ = util.ParameterizedGinkgoContainer("tikvoom", func(flagSet *flag.FlagSet) {
-	var duration time.Duration
-	flagSet.DurationVar(&duration, "duration", time.Second*10, "case run duration")
+var _ = ParameterizedGinkgoContainer("tikvoom", func(flagSet *flag.FlagSet) {
+	var (
+		duration      time.Duration
+		threadsNUmber int
+		tablesNumber  int
+		paddingLength int
+	)
+
+	flagSet.DurationVar(&duration, "duration", time.Second*10, "Run duration.")
+	flagSet.IntVar(&threadsNUmber, "threads", 1, "Threads number.")
+	flagSet.IntVar(&tablesNumber, "tables", 1, "Tables number.")
+	flagSet.IntVar(&paddingLength, "padding", 100, "Row padding length.")
+
 	Describe("Tikv OOM", func() {
 		var (
-			dbUrl         string
-			prometheusUrl string
-			ctx           infra_sdk.TestContext
+			dbDSN string
 		)
+		ctx := suiteTestCtx
 		BeforeEach(func() {
-			dbUrl = "root@tcp(127.0.0.1:4000)/test"
-			prometheusUrl = "http://127.0.0.1:9090"
-			err := error(nil)
-			ctx, err = infra_sdk.BuildContext()
-			Expect(err).NotTo(HaveOccurred())
+			r := ctx.Resource("tc")
+			tc := r.(infra_resource.TiDBCluster)
+			dbURL := Try(tc.ServiceURL(infra_resource.DBAddr)).(*url.URL)
+			// prometheusURL := Try(tc.ServiceURL(infra_resource.Prometheus)).(*url.URL)
+			dbDSN = fmt.Sprintf("root@tcp(%s)/test", dbURL.Host)
+			// dbDSN = "root@tcp(127.0.0.1:4000)/test"
+			// prometheusUrl = "http://127.0.0.1:9090"
 		})
+
 		Context("Tikv under heavy workload", func() {
 			It("should not oom", func() {
-				db, err := sql.Open("mysql", dbUrl)
-				Expect(err).NotTo(HaveOccurred())
-
-				ctx, cancel := context.WithTimeout(ctx, duration)
+				db := Try(sql.Open("mysql", dbDSN)).(*sql.DB)
+				ctx2, cancel := context.WithTimeout(ctx, duration)
 				defer cancel()
 
 				w := workload.AppendWorkload{
 					DB:          db,
-					Concurrency: 1,
-					Tables:      1,
-					PadLength:   4000000,
+					Concurrency: threadsNUmber,
+					Tables:      tablesNumber,
+					PadLength:   paddingLength,
 				}
-				err = w.Prepare()
-				Expect(err).NotTo(HaveOccurred())
-				go w.Run(ctx)
+				Try(w.Prepare())
+				go w.Run(ctx2)
 
-				c := checker.MetricsChecker{PrometheusUrl: prometheusUrl}
+				c := checker.MetricsChecker{PrometheusUrl: ""}
 				Consistently(func() error {
-					return c.RunOnce(ctx)
-				}, duration, time.Second*1).ShouldNot(HaveOccurred())
+					return c.RunOnce(ctx2)
+				}, duration, time.Second*10).ShouldNot(HaveOccurred())
 			})
 		})
 	})
 
-})
-
-var _ = Describe("Tikv OOM 2", func() {
-	It("should always pass", func() {})
-})
-
-var _ = Describe("Tikv X", func() {
-	It("should not be executed", func() {})
 })

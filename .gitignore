@@ -1,6 +1,7 @@
 # Infra SDK
 .env
 output
+tbconfig
 
 ### Go template
 # Binaries for programs and plugins

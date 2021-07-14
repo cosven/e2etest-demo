@@ -1,4 +1,4 @@
-package util
+package ginkgo_helper
 
 import (
 	"flag"
