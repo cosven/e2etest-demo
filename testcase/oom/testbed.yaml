@@ -8,7 +8,7 @@ items:
         replicas: 1
         image: pingcap/pd:v5.1.0
       tidb:
-        replicas: 1
+        replicas: 2
         image: pingcap/tidb:v5.1.0
         requests:
           cpu: 2000m
