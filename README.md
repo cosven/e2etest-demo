@@ -68,9 +68,25 @@ var _ = Describe("HelloWorld", func() {
 
 Try to run the test case.
 
-```sh
-ginkgo
+```
+$ ginkgo
+Running Suite: Examples Suite
+=============================
+Random Seed: 1626320700
+Will run 1 of 1 specs
+
+•My test case 'hello world' is ok!
+
+Ran 1 of 1 Specs in 0.000 seconds
+SUCCESS! -- 1 Passed | 0 Failed | 0 Pending | 0 Skipped
+PASS
+
+Ginkgo ran 1 suite in 1.174906876s
+Test Suite Passed
 ```
 
 Actually, this E2E test framework use ginkgo to manage all the test cases. 
 Check [ginkgo docs](https://onsi.github.io/ginkgo/) for more details.
+
+When you want to write a test case which use [infra sdk](https://github.com/pingcap/test-infra), 
+you can check the example `testcase/oom/tikv_test.go`.
