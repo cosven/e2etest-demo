@@ -10,6 +10,7 @@ import (
 
 	"github.com/pingcap/errors"
 	"github.com/pingcap/log"
+	"go.uber.org/zap"
 )
 
 type AppendWorkload struct {
@@ -23,7 +24,9 @@ type AppendWorkload struct {
 func MustExec(DB *sql.DB, query string, args ...interface{}) sql.Result {
 	r, err := DB.Exec(query, args...)
 	if err != nil {
-		log.Fatalf("exec %s err %v", query, err)
+		log.Fatal("Exec query err.",
+			zap.String("query", query),
+			zap.Error(err))
 	}
 	return r
 }
@@ -46,6 +49,7 @@ func (c *AppendWorkload) Prepare() error {
 		}(i)
 	}
 	wg.Wait()
+	log.Info("Prepare ok.")
 	return nil
 }
 
@@ -63,13 +67,13 @@ func (c *AppendWorkload) Run(ctx context.Context) error {
 				default:
 				}
 				err := c.runClient(ctx)
-				log.Error(err)
+				log.Error("Append row failed", zap.Error(err))
 			}
 		}()
 	}
 
 	wg.Wait()
-	log.Info("everything is ok!")
+	log.Info("Run ok!")
 	return nil
 }
 

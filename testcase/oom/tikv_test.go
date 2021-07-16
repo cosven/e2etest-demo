@@ -11,8 +11,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	qe_metrics "github.com/PingCAP-QE/metrics-checker/pkg/metrics"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/pingcap/e2etest/pkg/checker"
 	. "github.com/pingcap/e2etest/pkg/ginkgo_helper"
 	"github.com/pingcap/e2etest/pkg/workload"
 	infra_resource "github.com/pingcap/test-infra/sdk/resource"
@@ -28,20 +28,21 @@ var _ = ParameterizedGinkgoContainer("tikvoom", func(flagSet *flag.FlagSet) {
 	)
 
 	flagSet.DurationVar(&duration, "duration", time.Second*10, "Run duration.")
-	flagSet.IntVar(&threadsNUmber, "threads", 1, "Threads number.")
-	flagSet.IntVar(&tablesNumber, "tables", 1, "Tables number.")
-	flagSet.IntVar(&paddingLength, "padding", 100, "Row padding length.")
+	flagSet.IntVar(&threadsNUmber, "threads", 1024, "Threads number.")
+	flagSet.IntVar(&tablesNumber, "tables", 128, "Tables number.")
+	flagSet.IntVar(&paddingLength, "padding", 4000000, "Row padding length.")
 
 	Describe("Tikv OOM", func() {
 		var (
-			dbDSN string
+			dbDSN         string
+			prometheusURL *url.URL
 		)
 		ctx := suiteTestCtx
 		BeforeEach(func() {
 			r := ctx.Resource("tc")
 			tc := r.(infra_resource.TiDBCluster)
 			dbURL := Try(tc.ServiceURL(infra_resource.DBAddr)).(*url.URL)
-			// prometheusURL := Try(tc.ServiceURL(infra_resource.Prometheus)).(*url.URL)
+			prometheusURL = Try(tc.ServiceURL(infra_resource.Prometheus)).(*url.URL)
 			dbDSN = fmt.Sprintf("root@tcp(%s)/test", dbURL.Host)
 			// dbDSN = "root@tcp(127.0.0.1:4000)/test"
 			// prometheusUrl = "http://127.0.0.1:9090"
@@ -62,10 +63,14 @@ var _ = ParameterizedGinkgoContainer("tikvoom", func(flagSet *flag.FlagSet) {
 				Try(w.Prepare())
 				go w.Run(ctx2)
 
-				c := checker.MetricsChecker{PrometheusUrl: ""}
-				Consistently(func() error {
-					return c.RunOnce(ctx2)
-				}, duration, time.Second*10).ShouldNot(HaveOccurred())
+				checker := Try(qe_metrics.NewChecker(prometheusURL.String())).(*qe_metrics.Checker)
+				rule := qe_metrics.Rule{
+					Name:          "tikv should not restart.",
+					PromQL:        `rate(process_start_time_seconds{component="tikv"}[1m]) != 0`,
+					AlertCallback: func(rule qe_metrics.Rule) { Fail("One tikv restarted unexpected.") },
+				}
+				err := checker.RunRule(ctx2, rule, 10*time.Second)
+				Expect(err).ShouldNot(HaveOccurred())
 			})
 		})
 	})
