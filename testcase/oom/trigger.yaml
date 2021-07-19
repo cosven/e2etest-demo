@@ -1,0 +1,17 @@
+apiVersion: api/v1
+kind: Trigger
+# CRON | ONCE
+# CRON: 定时触发
+# ONCE: 触发一次
+type: ONCE
+# ONCE 类型的 name 请先不要填写, a related issue: https://github.com/pingcap/test-infra/issues/213
+# name: test_infra_all_once
+# TODO(@Thearas) change to email
+creator: 30001
+active: true
+summary: 尝试触发一下
+# uses plan id here
+planID: 11
+variables:
+    - name: version
+      value: v5.1.0

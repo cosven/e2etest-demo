@@ -1,0 +1,28 @@
+apiVersion: "api/v1"
+kind: Plan
+name: cosven-test-1
+# get https://tcms.pingcap.net/api/v1/users?emails=manjunpeng@pingcap.com
+# TODO(@Thearas) change to email
+creator: 30001
+
+variables:
+  - name: version
+    default: v5.1.0
+
+testbed:
+  generateName: plan-testbed-e2e-oom-
+  items:
+    - name: tc
+      type: TIDB_CLUSTER
+      spec:
+        pd: { replicas: 1, image: "pingcap/pd:{{variables.version}}" }
+        tikv: { replicas: 5, image: "pingcap/tikv:{{variables.version}}" }
+        tidb: { replicas: 2, image: "pingcap/tidb:{{variables.version}}" }
+pipeline:
+  # name must consist of alpha-numeric characters or '-', and must start with an alpha-numeric character (e.g. My-name1-2, 123-NAME)
+  - name: hey-hey
+    caseName: Stress_fun_001
+    parameters:
+      - name: tc
+        value: "{{testbed.tc}}"
+failFast: false
