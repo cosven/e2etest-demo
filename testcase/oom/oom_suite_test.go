@@ -1,6 +1,8 @@
 package oom_test
 
 import (
+	"errors"
+	"os"
 	"testing"
 
 	"github.com/joho/godotenv"
@@ -15,9 +17,11 @@ var (
 )
 
 func init() {
-	err := godotenv.Load()
-	if err != nil {
-		panic("Load dotenv failed.")
+	err := error(nil)
+	if err = godotenv.Load(); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			panic("Load dotenv failed.")
+		}
 	}
 	suiteTestCtx, err = infra_core.BuildContext()
 	if err != nil {

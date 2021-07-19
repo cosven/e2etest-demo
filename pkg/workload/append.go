@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
 
-	"github.com/pingcap/errors"
+	perrors "github.com/pingcap/errors"
 	"github.com/pingcap/log"
 	"go.uber.org/zap"
 )
@@ -63,11 +64,14 @@ func (c *AppendWorkload) Run(ctx context.Context) error {
 			for {
 				select {
 				case <-ctx.Done():
+					log.Info("Context is done.")
 					return
 				default:
 				}
 				err := c.runClient(ctx)
-				log.Error("Append row failed", zap.Error(err))
+				if !errors.Is(err, context.DeadlineExceeded) {
+					log.Warn("Append row failed", zap.Error(err))
+				}
 			}
 		}()
 	}
@@ -94,7 +98,7 @@ func (c *AppendWorkload) runClient(ctx context.Context) error {
 			base64.StdEncoding.EncodeToString(col2[:col2Len]),
 			base64.StdEncoding.EncodeToString(data[:dataLen]))
 		if err != nil {
-			return errors.Trace(err)
+			return perrors.Trace(err)
 		}
 	}
 }
