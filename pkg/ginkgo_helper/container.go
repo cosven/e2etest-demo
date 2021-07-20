@@ -12,8 +12,8 @@ func ParameterizedGinkgoContainer(name string, flagSetInit func(flagSet *flag.Fl
 	flagSetInit(flagSet)
 
 	// TODO(cosven): I think there exists a library doing the follow parsing.
-	args := []string{}
-	flagSetArgs := []string{}
+	var args []string
+	var flagSetArgs []string
 	foundDelimiter := false
 	for _, arg := range os.Args[1:] {
 		if !foundDelimiter {
