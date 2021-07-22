@@ -1,4 +1,4 @@
-package ginkgo_helper
+package matcher
 
 import (
 	"fmt"
@@ -14,6 +14,15 @@ import (
 type panicWithOutput struct {
 	name     []string
 	delegate *matchers.PanicMatcher
+}
+
+// PanicWithOutput asserts that the actual function should panicked. this is implemented as a pure delegate of gomega.Panic.
+// the only difference is that this matcher will not only asserts the panic, but also print the carried value to stdout.
+func PanicWithOutput(name ...string) types.GomegaMatcher {
+	return &panicWithOutput{
+		name:     name,
+		delegate: &matchers.PanicMatcher{},
+	}
 }
 
 func (p *panicWithOutput) Match(actual interface{}) (success bool, err error) {
@@ -40,11 +49,4 @@ func (p *panicWithOutput) FailureMessage(actual interface{}) (message string) {
 
 func (p *panicWithOutput) NegatedFailureMessage(actual interface{}) (message string) {
 	return p.delegate.NegatedFailureMessage(actual)
-}
-
-func PanicWithOutput(name ...string) types.GomegaMatcher {
-	return &panicWithOutput{
-		name:     name,
-		delegate: &matchers.PanicMatcher{},
-	}
 }

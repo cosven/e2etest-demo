@@ -1,4 +1,4 @@
-package ginkgo_helper
+package util
 
 import (
 	. "github.com/onsi/gomega"

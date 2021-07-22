@@ -15,11 +15,13 @@ import (
 	"github.com/pingcap/test-infra/sdk/resource"
 	_ "github.com/pingcap/test-infra/sdk/resource/impl/k8s"
 
-	. "github.com/pingcap/e2etest/pkg/ginkgo_helper"
+	assertion2 "github.com/pingcap/e2etest/pkg/assertion"
+	"github.com/pingcap/e2etest/pkg/matcher"
+	. "github.com/pingcap/e2etest/pkg/util"
 	"github.com/pingcap/e2etest/pkg/workload"
 )
 
-var _ = ParameterizedGinkgoContainer("tikvoom", func(flagSet *flag.FlagSet) {
+var _ = ParameterizedTestCase("tikvoom", func(flagSet *flag.FlagSet) {
 	var (
 		duration      time.Duration
 		threadsNUmber int
@@ -66,12 +68,14 @@ var _ = ParameterizedGinkgoContainer("tikvoom", func(flagSet *flag.FlagSet) {
 
 				prometheusURL, err := tc.ServiceURL(resource.Prometheus)
 				Expect(err).ShouldNot(HaveOccurred())
-				c, err := BuildPrometheusAPI(*prometheusURL)
+				c, err := matcher.NewPrometheusClient(*prometheusURL)
 				Expect(err).ShouldNot(HaveOccurred())
 
-				Consistently(PromQL("TiKV should not restart", `rate(process_start_time_seconds{component="tikv"}[1m]) != 0`, &c)).Should(PromQLEvaluatedToEmpty())
+				assertion2.ConsistentlyWithMetrics(matcher.PromQL(
+					"TiKV should not restart",
+					`rate(process_start_time_seconds{component="tikv"}[1m]) != 0`, &c),
+				).Should(matcher.PromQLEvaluatedToEmpty())
 			})
 		})
 	})
-
 })

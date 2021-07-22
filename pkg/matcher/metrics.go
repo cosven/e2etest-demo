@@ -1,4 +1,4 @@
-package ginkgo_helper
+package matcher
 
 import (
 	"context"
@@ -7,14 +7,13 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
 
-func BuildPrometheusAPI(prometheusURL url.URL) (v1.API, error) {
+func NewPrometheusClient(prometheusURL url.URL) (v1.API, error) {
 	client, err := api.NewClient(api.Config{
 		Address: prometheusURL.String(),
 	})
@@ -31,6 +30,8 @@ type PromQLInstance struct {
 	api         *v1.API
 }
 
+// PromQL create a PromQLInstance that you could assert on.
+// currently only PromQLEvaluatedToEmpty matcher is supported.
 func PromQL(description string, query string, api *v1.API) PromQLInstance {
 	return PromQLInstance{
 		description: description,
@@ -46,6 +47,10 @@ type promQLEvaluatedMatcher struct {
 	promQL      string
 }
 
+// PromQLEvaluatedToEmpty evaluates a PromQL query against a cluster, and checks if it is:
+//  - a Vector, and not empty
+//  - a Scalar, and not empty
+// if neither satisfied, the checker will fail. related checking logic is in promQLEvaluatedMatcher::checkPromQL.
 func PromQLEvaluatedToEmpty() *promQLEvaluatedMatcher {
 	return &promQLEvaluatedMatcher{}
 }
@@ -53,7 +58,7 @@ func PromQLEvaluatedToEmpty() *promQLEvaluatedMatcher {
 func (matcher *promQLEvaluatedMatcher) Match(actual interface{}) (success bool, err error) {
 	ql, ok := actual.(PromQLInstance)
 	if !ok {
-		return false, fmt.Errorf("PromQLEvaluatedToEmpty must be passed a ginkgo_helper.PromQLInstance. Got:\n%s", format.Object(actual, 1))
+		return false, fmt.Errorf("PromQLEvaluatedToEmpty must be passed a util.PromQLInstance. Got:\n%s", format.Object(actual, 1))
 	}
 
 	result, value, err := matcher.checkPromQL(*ql.api, ql.query, time.Now())
@@ -65,7 +70,7 @@ func (matcher *promQLEvaluatedMatcher) Match(actual interface{}) (success bool, 
 }
 
 // checkPromQL copied from github.com/PingCAP-QE/metrics-checker with val returned
-// checkPromQL checks if a query returns true.
+// checkPromQL checks if a query returns true, called by PromQLEvaluatedToEmpty.
 func (matcher *promQLEvaluatedMatcher) checkPromQL(client v1.API, query string, ts time.Time) (result bool, value model.Value, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -98,11 +103,4 @@ func (matcher *promQLEvaluatedMatcher) NegatedFailureMessage(_ interface{}) (mes
 	} else {
 		return format.Message(matcher.actual, fmt.Sprintf("to match the expected result of PromQL [%s] %s", matcher.description, matcher.promQL), "<empty Scalar or Vector>")
 	}
-}
-
-func init() {
-	gomega.SetDefaultConsistentlyDuration(3 * time.Hour)
-	gomega.SetDefaultConsistentlyPollingInterval(1 * time.Minute)
-	gomega.SetDefaultEventuallyTimeout(3 * time.Hour)
-	gomega.SetDefaultEventuallyPollingInterval(1 * time.Minute)
 }

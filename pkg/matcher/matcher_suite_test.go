@@ -1,4 +1,4 @@
-package examples_test
+package matcher
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestExamples(t *testing.T) {
+func TestUtils(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Examples Suite")
+	RunSpecs(t, "Matcher Suite")
 }
