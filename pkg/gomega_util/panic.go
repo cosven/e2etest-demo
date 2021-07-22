@@ -1,4 +1,4 @@
-package matcher
+package gomega_util
 
 import (
 	"fmt"

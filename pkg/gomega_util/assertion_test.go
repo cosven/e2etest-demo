@@ -1,4 +1,4 @@
-package assertion
+package gomega_util
 
 import (
 	"fmt"
